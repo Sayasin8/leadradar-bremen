@@ -26,12 +26,12 @@ def init_db():
         signals TEXT, outreach TEXT, url TEXT, raw_data TEXT,
         is_hot INTEGER DEFAULT 0, is_contacted INTEGER DEFAULT 0,
         is_archived INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT (datetime("now")),
-        updated_at TEXT DEFAULT (datetime("now")))''')
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
     conn.execute('''CREATE TABLE IF NOT EXISTS mietpreis (
         id INTEGER PRIMARY KEY AUTOINCREMENT, plz TEXT UNIQUE, area TEXT,
         miete_avg REAL, kauf_rate_avg REAL,
-        updated_at TEXT DEFAULT (datetime("now")))''')
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
     conn.commit(); conn.close()
 
 @app.route('/api/leads')
