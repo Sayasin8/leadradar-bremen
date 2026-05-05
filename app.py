@@ -88,7 +88,7 @@ def mietpreis():
 def scrape_all():
     import subprocess, sys
     scrapers=['scrapers/baugenehmigungen.py','scrapers/handelsregister.py','scrapers/kleinanzeigen.py',
-              'scrapers/wg_gesucht.py','scrapers/schwarzesbrett.py','scrapers/wettbewerber.py','scrapers/mietpreis.py']
+              'scrapers/nebenan.py','scrapers/schwarzesbrett.py','scrapers/wettbewerber.py','scrapers/mietpreis.py']
     results=[]
     for s in scrapers:
         try: subprocess.Popen([sys.executable,s]); results.append({'script':s,'status':'gestartet'})
@@ -107,7 +107,7 @@ def start_scheduler():
         try: subprocess.Popen([sys.executable,s])
         except: pass
     schedule.every(4).hours.do(run,'scrapers/kleinanzeigen.py')
-    schedule.every(6).hours.do(run,'scrapers/wg_gesucht.py')
+    schedule.every(6).hours.do(run,'scrapers/nebenan.py')
     schedule.every().day.at("08:00").do(run,'scrapers/baugenehmigungen.py')
     schedule.every().day.at("08:15").do(run,'scrapers/handelsregister.py')
     schedule.every().day.at("09:00").do(run,'scrapers/wettbewerber.py')
