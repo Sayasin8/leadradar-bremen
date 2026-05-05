@@ -85,6 +85,43 @@
     font-size: 11px;
   }
 
+  .scrape-btn {
+    background: #4ade80;
+    color: #1a1917;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .scrape-btn:hover { background: #86efac; }
+  .scrape-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .scrape-btn.loading { background: #fbbf24; color: #1a1917; }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 4px solid #4ade80; }
+  .toast.error { border-left: 4px solid #ef4444; }
+
   /* STATS */
   .stats-bar {
     background: var(--surface);
@@ -422,6 +459,7 @@
   <div class="region-badge">Bremen + 50 km</div>
   <div class="header-actions">
     <span class="last-update" id="lastUpdate">Aktualisiert: gerade eben</span>
+    <button class="scrape-btn" id="scrapeBtn" onclick="startScraper()">🚀 Leads aktualisieren</button>
   </div>
 </div>
 
@@ -804,17 +842,52 @@ function filterTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
-  renderLeads();
+  
+function showToast(msg, type='success') {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+async function startScraper() {
+  const btn = document.getElementById('scrapeBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = '⏳ Scraper laufen...';
+  try {
+    const r = await fetch('/api/scrape/all', {method:'POST'});
+    const d = await r.json();
+    showToast('✅ Alle Scraper gestartet! Neue Leads erscheinen in wenigen Minuten.', 'success');
+  } catch(e) {
+    showToast('❌ Fehler beim Starten der Scraper.', 'error');
+  }
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.textContent = '🚀 Leads aktualisieren';
+  }, 5000);
+}
+
+renderLeads();
 }
 
 function sortLeads(val) {
   currentSort = val;
-  renderLeads();
+  
+
+
+renderLeads();
 }
 
 function filterScore(val) {
   currentScoreFilter = val;
-  renderLeads();
+  
+
+
+renderLeads();
 }
 
 function selectLead(id) {
@@ -822,7 +895,10 @@ function selectLead(id) {
   const lead = LEADS.find(l => l.id === id);
   if (!lead) return;
 
-  renderLeads();
+  
+
+
+renderLeads();
 
   const sc = getScoreClass(lead.score);
   const container = document.getElementById('detailContainer');
@@ -965,10 +1041,13 @@ function updateTime() {
     'Aktualisiert: ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
+
+
+
 renderLeads();
 renderMietGrid();
 updateTime();
 setInterval(updateTime, 60000);
-</script>
+</script></script>
 </body>
 </html>
