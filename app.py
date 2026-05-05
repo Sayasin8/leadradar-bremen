@@ -84,7 +84,7 @@ def stats():
 def mietpreis():
     conn=get_db(); rows=[dict(r) for r in conn.execute('SELECT * FROM mietpreis ORDER BY (miete_avg-kauf_rate_avg) DESC').fetchall()]; conn.close(); return jsonify(rows)
 
-@app.route('/api/scrape/all', methods=['POST'])
+@app.route('/api/scrape/all', methods=['GET','POST'])
 def scrape_all():
     import subprocess, sys
     scrapers=['scrapers/baugenehmigungen.py','scrapers/handelsregister.py','scrapers/kleinanzeigen.py',
