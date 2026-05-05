@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeadRadar Bremen</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: #e2e0d8;
+    --text: #1a1917;
+    --text2: #6b6a65;
+    --text3: #9e9d98;
+    --accent: #1a472a;
+    --accent-light: #e8f0ea;
+    --accent2: #c8440a;
+    --accent2-light: #fdf0eb;
+    --blue: #1a3a6b;
+    --blue-light: #eaf0f9;
+    --amber: #92540a;
+    --amber-light: #fdf5e8;
+    --score-high: #15803d;
+    --score-mid: #a16207;
+    --score-low: #b91c1c;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--text);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .region-badge {
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.85);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+
+  .last-update {
+    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+  }
+
+  /* STATS */
+  .stats-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+  }
+
+  .stat-item {
+    padding: 14px 20px;
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .stat-item:last-child { border-right: none; }
+  .stat-item:hover { background: var(--bg); }
+
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600; line-height: 1; }
+  .stat-value.green { color: var(--score-high); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.red { color: var(--score-low); }
+  .stat-delta { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .stat-delta.up { color: var(--score-high); }
+
+  /* MAIN LAYOUT */
+  .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 110px); }
+
+  /* FEED */
+  .feed-panel {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .feed-toolbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tab-btn {
+    padding: 12px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+
+  .source-count {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    margin-left: 4px;
+  }
+
+  .tab-btn.active .source-count {
+    background: var(--text);
+    color: white;
+  }
+
+  /* LEAD CARDS */
+  .lead-feed { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .lead-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .lead-card:hover { border-color: var(--text); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .lead-card.selected { border-color: var(--text); border-width: 2px; }
+  .lead-card.hot { border-left: 3px solid #ef4444; }
+
+  .lead-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+
+  .source-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+
+  .source-bau { background: var(--blue-light); color: var(--blue); }
+  .source-handel { background: var(--amber-light); color: var(--amber); }
+  .source-wg { background: var(--accent-light); color: var(--accent); }
+  .source-kleinanzeige { background: #fce7f3; color: #9d174d; }
+  .source-brett { background: #f3e8ff; color: #6b21a8; }
+  .source-wett { background: #fee2e2; color: #991b1b; }
+  .source-miete { background: #e0f2fe; color: #075985; }
+  .source-nebenan { background: #fef3c7; color: #92400e; }
+
+  .score-badge {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    min-width: 38px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .score-badge.high { color: var(--score-high); }
+  .score-badge.mid { color: var(--score-mid); }
+  .score-badge.low { color: var(--score-low); }
+
+  .lead-title { font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--text); margin-bottom: 4px; }
+  .lead-sub { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+  .lead-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .lead-location { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+
+  .score-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; }
+  .score-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .score-fill.high { background: var(--score-high); }
+  .score-fill.mid { background: var(--score-mid); }
+  .score-fill.low { background: var(--score-low); }
+
+  .lead-age { font-size: 10px; color: var(--text3); }
+  .hot-tag { font-size: 10px; font-weight: 600; color: #ef4444; background: #fee2e2; padding: 1px 6px; border-radius: 10px; }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .panel-section {
+    border-bottom: 1px solid var(--border);
+    padding: 16px;
+  }
+
+  .panel-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text3);
+    margin-bottom: 12px;
+  }
+
+  /* AI SCORER */
+  .ai-section { padding: 16px; flex: 1; }
+
+  .ai-input-area {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    resize: vertical;
+    min-height: 90px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .ai-input-area:focus { border-color: var(--text); background: white; }
+
+  .ai-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    background: var(--text);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    letter-spacing: 0.2px;
+  }
+
+  .ai-btn:hover { opacity: 0.85; }
+  .ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .ai-result {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text2);
+    display: none;
+  }
+
+  .ai-result.visible { display: block; }
+
+  .ai-score-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ai-score-big {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .ai-score-label { font-size: 11px; color: var(--text3); }
+
+  /* DETAIL VIEW */
+  .detail-view { display: none; padding: 16px; }
+  .detail-view.visible { display: block; }
+
+  .detail-header { margin-bottom: 14px; }
+  .detail-source-pill { display: inline-block; margin-bottom: 8px; }
+  .detail-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; line-height: 1.3; margin-bottom: 6px; }
+  .detail-score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .detail-score-big { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; }
+
+  .detail-signals { margin-bottom: 14px; }
+  .signal-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .signal-item:last-child { border-bottom: none; }
+  .signal-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  .outreach-box {
+    background: var(--accent-light);
+    border: 1px solid #c3d9c7;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--accent);
+    margin-top: 12px;
+  }
+
+  .outreach-label { font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; opacity: 0.7; }
+
+  .action-row { display: flex; gap: 8px; margin-top: 12px; }
+
+  .action-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .action-btn:hover { background: var(--bg); border-color: var(--text); }
+  .action-btn.primary { background: var(--text); color: white; border-color: var(--text); }
+  .action-btn.primary:hover { opacity: 0.85; }
+
+  /* MIETPREIS KARTE */
+  .miet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  .miet-cell {
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+  }
+
+  .miet-plz { font-size: 10px; color: var(--text3); font-weight: 500; }
+  .miet-area { font-size: 12px; font-weight: 500; color: var(--text); margin: 1px 0; }
+  .miet-diff { font-size: 11px; font-weight: 600; }
+  .miet-diff.save { color: var(--score-high); }
+  .miet-diff.lose { color: var(--score-low); }
+  .miet-bar { height: 3px; border-radius: 2px; margin-top: 4px; }
+  .miet-bar.save { background: var(--score-high); }
+  .miet-bar.lose { background: var(--score-low); }
+
+  /* LOADING */
+  .loading-dots { display: inline-flex; gap: 4px; align-items: center; }
+  .loading-dots span { width: 5px; height: 5px; background: var(--text3); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text3); }
+  .empty-state div { font-size: 28px; margin-bottom: 8px; }
+
+  .filter-row { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .filter-select { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; background: var(--bg); color: var(--text); outline: none; cursor: pointer; }
+  .filter-label { font-size: 11px; color: var(--text3); }
+  .count-tag { margin-left: auto; font-size: 11px; color: var(--text3); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    LeadRadar
+  </div>
+  <div class="region-badge">Bremen + 50 km</div>
+  <div class="header-actions">
+    <span class="last-update" id="lastUpdate">Aktualisiert: gerade eben</span>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat-item">
+    <div class="stat-label">Leads gesamt</div>
+    <div class="stat-value" id="totalLeads">24</div>
+    <div class="stat-delta up" id="deltaLeads">+7 heute</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Hot Leads</div>
+    <div class="stat-value red" id="hotLeads">6</div>
+    <div class="stat-delta">Score 80+</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Ø Lead-Score</div>
+    <div class="stat-value amber" id="avgScore">64</div>
+    <div class="stat-delta">von 100</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Wettb. Schwächen</div>
+    <div class="stat-value green" id="wettCount">3</div>
+    <div class="stat-delta up">+2 diese Woche</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Mietpreis-Alarm</div>
+    <div class="stat-value green" id="mietAlarm">11 PLZ</div>
+    <div class="stat-delta">Miete > Kaufrate</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="feed-panel">
+    <div class="feed-toolbar">
+      <button class="tab-btn active" onclick="filterTab('alle')">Alle <span class="source-count" id="cnt-alle">24</span></button>
+      <button class="tab-btn" onclick="filterTab('bau')">Baugenehmigungen <span class="source-count" id="cnt-bau">5</span></button>
+      <button class="tab-btn" onclick="filterTab('handel')">Handelsregister <span class="source-count" id="cnt-handel">4</span></button>
+      <button class="tab-btn" onclick="filterTab('wg')">WG-Gesucht <span class="source-count" id="cnt-wg">4</span></button>
+      <button class="tab-btn" onclick="filterTab('kleinanzeige')">Kleinanzeigen <span class="source-count" id="cnt-kleinanzeige">4</span></button>
+      <button class="tab-btn" onclick="filterTab('brett')">Schwarzes Brett <span class="source-count" id="cnt-brett">3</span></button>
+      <button class="tab-btn" onclick="filterTab('wett')">Wettbewerber <span class="source-count" id="cnt-wett">3</span></button>
+      <button class="tab-btn" onclick="filterTab('miete')">Mietpreis-Radar <span class="source-count" id="cnt-miete">1</span></button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Sortieren:</span>
+      <select class="filter-select" onchange="sortLeads(this.value)">
+        <option value="score">Score (absteigend)</option>
+        <option value="date">Neueste zuerst</option>
+        <option value="source">Quelle</option>
+      </select>
+      <select class="filter-select" onchange="filterScore(this.value)">
+        <option value="alle">Alle Scores</option>
+        <option value="hot">Nur Hot (80+)</option>
+        <option value="mid">Mittel (50–79)</option>
+        <option value="low">Niedrig (&lt;50)</option>
+      </select>
+      <span class="count-tag" id="countTag">24 Leads</span>
+    </div>
+    <div class="lead-feed" id="leadFeed"></div>
+  </div>
+
+  <div class="right-panel">
+    <div id="detailContainer">
+      <div class="panel-section" style="padding-bottom: 12px;">
+        <div class="panel-title">Lead-Detail</div>
+        <div style="color: var(--text3); font-size: 12px; text-align: center; padding: 20px 0;">
+          Klicke einen Lead an<br>für die Detailansicht
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Mietpreis-Schmerzpunkt</div>
+      <div class="miet-grid" id="mietGrid"></div>
+      <div style="font-size: 11px; color: var(--text3); margin-top: 8px; line-height: 1.5;">
+        Grün = Kaufen günstiger als Mieten.<br>Nutze diese PLZ für gezielte Ansprache.
+      </div>
+    </div>
+
+    <div class="ai-section">
+      <div class="panel-title" style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); margin-bottom: 10px;">KI Lead-Scorer</div>
+      <textarea class="ai-input-area" id="aiInput" placeholder="Füge hier Lead-Informationen ein&#10;(z.B. Anzeigentext, LinkedIn-Post, Bewerbung...)&#10;&#10;KI analysiert Kaufwahrscheinlichkeit & gibt dir einen Score."></textarea>
+      <button class="ai-btn" id="aiBtn" onclick="scoreWithAI()">Lead analysieren ↗</button>
+      <div class="ai-result" id="aiResult"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LEADS = [
+  {
+    id: 1, source: 'bau', sourceLabel: 'Baugenehmigung', score: 92,
+    title: 'Bauantrag Einfamilienhaus – Bremen Findorff',
+    sub: 'Antrag vom 02.05. genehmigt. Wohnfläche: 160m², Grundstück: 450m². Bauherr: Privatperson.',
+    location: 'Bremen Findorff · 28215',
+    signals: ['Genehmigter Bauantrag = konkrete Kaufabsicht', 'Privatbauherr braucht Baufinanzierung', 'Baubeginn in ca. 4–8 Wochen'],
+    outreach: 'Herzlichen Glückwunsch zur erteilten Baugenehmigung! Als spezialisierter Baufinanzierungsberater in der Region helfe ich Ihnen dabei, die optimale Finanzierungsstruktur für Ihr Vorhaben zu finden – inkl. KfW-Förderung.',
+    age: 'Vor 1 Tag', hot: true
+  },
+  {
+    id: 2, source: 'wett', sourceLabel: 'Wettbewerber', score: 88,
+    title: '1-Stern-Bewertung bei Konkurrenz – ProvenExpert',
+    sub: '"Völlig uninformiert, keine Rückmeldung nach Wochen." – Führende Baufi-Beratung Bremen GmbH.',
+    location: 'Bremen · Öffentlich',
+    signals: ['Kunde aktiv unzufrieden und offen für Wechsel', 'Führende Konkurrenz in Schwächephase', 'Zeitfenster: ca. 2–3 Wochen bis Kunde anderweitig versorgt'],
+    outreach: 'Ich habe gesehen, dass Ihre Erfahrung mit anderen Beratern enttäuschend war. Bei mir ist persönliche Beratung kein Versprechen, sondern Standard. Kostenlose Erstberatung innerhalb von 48h.',
+    age: 'Vor 3 Stunden', hot: true
+  },
+  {
+    id: 3, source: 'handel', sourceLabel: 'Handelsregister', score: 85,
+    title: 'GmbH-Gründung – IT-Dienstleister, Delmenhorst',
+    sub: 'Stammkapital: 50.000€, 2 Gesellschafter, Branche: Software-Entwicklung. Eingetragen 30.04.',
+    location: 'Delmenhorst · 27749',
+    signals: ['Unternehmer-Profil = sehr bankable', 'Neues Büro + oft neues Eigenheim', 'Kaufkraft durch hohes Stammkapital signalisiert'],
+    outreach: 'Zur frischen Unternehmensgründung herzlichen Glückwunsch! Viele Gründer unterschätzen, wie günstig die Eigenheimfinanzierung parallel zum Unternehmensaufbau sein kann – ich zeige Ihnen, wie das geht.',
+    age: 'Vor 2 Tagen', hot: true
+  },
+  {
+    id: 4, source: 'wg', sourceLabel: 'WG-Gesucht', score: 82,
+    title: 'Ausziehende Person, 31, festes Einkommen – Suche Wohnung',
+    sub: '"Ich bin Krankenpfleger am Klinikum Bremen-Mitte, unbefristet angestellt, suche eigene 2–3 Zimmer-Wohnung oder kleines Haus."',
+    location: 'Bremen Mitte · 28199',
+    signals: ['Sicheres Einkommen in Systemberufen', 'Ausziehen = oft Einstieg in Kaufüberlegung', 'Aktiv suchend = hohe Motivation'],
+    outreach: 'Als Krankenpfleger in unbefristeter Anstellung sind Sie für Banken ein Top-Kreditnehmer. Oft ist die Monatsrate für Eigentum geringer als die Miete – das zeige ich Ihnen in 30 Minuten.',
+    age: 'Vor 5 Stunden', hot: true
+  },
+  {
+    id: 5, source: 'kleinanzeige', sourceLabel: 'Kleinanzeigen', score: 79,
+    title: 'Suchanzeige: Einfamilienhaus bis 380.000€ – Familie mit 2 Kindern',
+    sub: '"Suchen Einfamilienhaus oder DHH im Raum Bremen, max. 380.000€. Eigenkapital vorhanden. Beide berufstätig."',
+    location: 'Bremen Umgebung · 28000',
+    signals: ['Eigenkapital erwähnt = ernsthafter Kaufinteressent', 'Beide berufstätig = doppeltes Einkommen', 'Preisvorstellung klar definiert'],
+    outreach: 'Ihre Suchanzeige zeigt, dass Sie konkret auf der Suche sind. Mit Ihrem Eigenkapital und doppeltem Einkommen dürfte die Finanzierung sehr gut darstellbar sein – ich prüfe das kostenlos für Sie.',
+    age: 'Vor 12 Stunden', hot: false
+  },
+  {
+    id: 6, source: 'bau', sourceLabel: 'Baugenehmigung', score: 77,
+    title: 'Umbaugenehmigung Mehrfamilienhaus – Oldenburg',
+    sub: 'Genehmigung für Anbau + Dachgeschossausbau, Eigentümer: Privatperson. 3 neue Einheiten geplant.',
+    location: 'Oldenburg · 26122',
+    signals: ['Erweiterungsinvestition = Finanzierungsbedarf', 'Privatinvestor mit Eigenbestand', 'Anschlussfinanzierung möglich'],
+    outreach: 'Bei einem Umbau dieser Größenordnung lohnt sich oft eine Sondertilgungsstrategie parallel zur KfW-Sanierungsförderung. Ich analysiere das kostenlos für Sie.',
+    age: 'Vor 3 Tagen', hot: false
+  },
+  {
+    id: 7, source: 'brett', sourceLabel: 'Schwarzes Brett', score: 74,
+    title: 'Familie sucht Haus mit Garten – Niedersachsen Umland',
+    sub: '"3 Kinder, wir suchen Haus mit mind. 100m² Wohnfläche + Garten. Festanstellung. Budget: bis 420.000€."',
+    location: 'Oyten / Achim · 28876',
+    signals: ['3 Kinder = Kinder-KfW-Bonus möglich (bis 30.000€ extra)', 'Klarer Budgetrahmen = konkrete Kaufabsicht', 'Festanstellung = stabile Bonität'],
+    outreach: 'Für Familien mit Kindern gibt es aktuell besondere KfW-Förderungen die viele Berater übersehen. Mit 3 Kindern könnte Ihr Förderpaket erheblich größer sein – lassen Sie mich das ausrechnen.',
+    age: 'Vor 8 Stunden', hot: false
+  },
+  {
+    id: 8, source: 'handel', sourceLabel: 'Handelsregister', score: 71,
+    title: 'Kapitalerhöhung – Logistikunternehmen, Bremerhaven',
+    sub: 'Kapitalerhöhung von 100.000€ auf 250.000€. Inhabergeführt seit 2018. Umsatz wächst.',
+    location: 'Bremerhaven · 27570',
+    signals: ['Liquiditätsereignis = Kaufkraft gestiegen', 'Inhabergeführt = Unternehmerhaushalt', 'Wachstum signalisiert Stabilität'],
+    outreach: 'Eine Kapitalerhöhung ist oft der Moment, in dem Unternehmer auch privat größer denken. Als inhabergeführtes Unternehmen haben Sie besondere Finanzierungsoptionen.',
+    age: 'Vor 4 Tagen', hot: false
+  },
+  {
+    id: 9, source: 'wg', sourceLabel: 'WG-Gesucht', score: 68,
+    title: 'Ausziehende Person, 28, Lehramt Uni Bremen – Festanstellung ab Sept.',
+    sub: '"Ich fange im September meine erste Lehrerstelle an. Suche eigene Wohnung oder kleines Apartment. Budget flexibel."',
+    location: 'Bremen · 28359',
+    signals: ['Verbeamtung = perfektes Kreditprofil', 'Einkommenssprung ab September', 'Junges Alter = langer Tilgungszeitraum möglich'],
+    outreach: 'Als zukünftiger Verbeamteter sind Sie für Banken einer der attraktivsten Kreditnehmer überhaupt. Schon vor Ihrer ersten Gehaltszahlung können wir alles vorbereiten.',
+    age: 'Vor 1 Tag', hot: false
+  },
+  {
+    id: 10, source: 'kleinanzeige', sourceLabel: 'Kleinanzeigen', score: 65,
+    title: 'Privater Hausverkauf – ohne Makler, Verden',
+    sub: '"Verkaufe DHH, 130m², Baujahr 1992, 265.000€ VB. Eigentümer zieht ins Betreute Wohnen."',
+    location: 'Verden · 27283',
+    signals: ['Käufer noch gesucht = deren Finanzierung ungesichert', 'Preis unter Markt = schnelle Finanzierung attraktiv', 'Privater Verkauf = kein Makler kontrolliert den Prozess'],
+    outreach: 'Wer dieses Objekt kauft, braucht eine schnelle Finanzierungszusage. Ich kann innerhalb von 48h eine belastbare Konditionsanfrage bei mehreren Banken stellen – ideal für diesen Fall.',
+    age: 'Vor 2 Tagen', hot: false
+  },
+  {
+    id: 11, source: 'brett', sourceLabel: 'Schwarzes Brett', score: 62,
+    title: 'Junges Paar sucht Startwohnung – Uni Umfeld',
+    sub: '"Beide frisch im Job, suchen erste eigene Wohnung oder kleine ETW bis 220.000€. Eltern könnten bürgen."',
+    location: 'Bremen Neustadt · 28203',
+    signals: ['Elternbürgschaft = Eigenkapitalsurrogat', 'Frisch im Job = Einsteigertarif-Chance', 'ETW-Suche = konkreter Kaufwunsch'],
+    outreach: 'Für Berufseinsteiger mit Elternbürgschaft gibt es spezielle Konstruktionen die den Eigenkapital-Bedarf stark senken. Das zeige ich Euch gerne in einem 30-Minuten-Gespräch.',
+    age: 'Vor 6 Stunden', hot: false
+  },
+  {
+    id: 12, source: 'wett', sourceLabel: 'Wettbewerber', score: 81,
+    title: '2-Stern-Bewertung – ING-Direktberatung Bremen',
+    sub: '"Online-Antrag 3 Wochen kein Feedback. Finanzierung trotzdem abgelehnt ohne Begründung." – Google Reviews.',
+    location: 'Bremen · Öffentlich',
+    signals: ['Abgelehnte Finanzierung = braucht Alternative dringend', 'Großbank-Frust = offen für unabhängige Beratung', 'Zeitkritisch: Kaufinteresse noch vorhanden'],
+    outreach: 'Bankablehnungen bei Direktbanken bedeuten nicht, dass Ihr Vorhaben nicht finanzierbar ist. Als unabhängiger Berater prüfe ich 50+ Banken – oft finden wir eine Lösung.',
+    age: 'Vor 18 Stunden', hot: true
+  },
+  {
+    id: 13, source: 'bau', sourceLabel: 'Baugenehmigung', score: 73,
+    title: 'Neubau Doppelhaushälfte – Oyten',
+    sub: 'Zwei separate Bauanträge auf einem Grundstück, je 120m² Wohnfläche. Baustart Q3/2025 geplant.',
+    location: 'Oyten · 28876',
+    signals: ['Zwei potenzielle Bauherren auf einem Grundstück', 'Beide brauchen unabhängige Finanzierung', 'Noch keine Bank angesprochen (frisch genehmigt)'],
+    outreach: 'Bei einem Doppelhausprojekt ist es entscheidend, beide Finanzierungen aufeinander abzustimmen. Als Berater koordiniere ich das für Sie effizient.',
+    age: 'Vor 5 Tagen', hot: false
+  },
+  {
+    id: 14, source: 'handel', sourceLabel: 'Handelsregister', score: 69,
+    title: 'Arztpraxis-Gründung – Allgemeinmedizin, Achim',
+    sub: 'Einzelunternehmen angemeldet. Ärztin, vorher Angestellte in Klinik. Erste Niederlassung.',
+    location: 'Achim · 28832',
+    signals: ['Ärztin = exzellentes Kreditprofil', 'Praxisgründung oft parallel zum Hauskauf', 'Erste Niederlassung = neuer Lebensmittelpunkt'],
+    outreach: 'Ärztinnen bei der Praxisgründung erhalten oft die besten Baufinanzierungskonditionen überhaupt. Ich zeige Ihnen warum – und was das für Ihr Eigenheim bedeutet.',
+    age: 'Vor 3 Tagen', hot: false
+  },
+  {
+    id: 15, source: 'kleinanzeige', sourceLabel: 'Kleinanzeigen', score: 58,
+    title: 'Wohnung gesucht – Umzug wegen neuem Job (Siemens)',
+    sub: '"Komme aus München, fange bei Siemens in Bremen an. Suche Wohnung oder Haus zur Miete mit Option auf Kauf."',
+    location: 'Bremen Nord · 28755',
+    signals: ['Einkommenssprung durch Industriearbeitgeber', 'Städtewechsel = offener für Eigentum', '"Option auf Kauf" = Kaufbereitschaft signalisiert'],
+    outreach: 'Willkommen in Bremen! Viele Zuzügler entscheiden sich schnell für Eigentum statt Miete – gerade wenn man langfristig plant. Ich helfe Ihnen beim Einstieg.',
+    age: 'Vor 9 Stunden', hot: false
+  },
+  {
+    id: 16, source: 'wg', sourceLabel: 'WG-Gesucht', score: 55,
+    title: 'Ausziehende Person, 34, Diplom-Ingenieur – Konzernmitarbeiter',
+    sub: '"Suche nach 6 Jahren WG endlich eigene Wohnung. Bin bei Airbus angestellt, unbefristet. Budget offen."',
+    location: 'Bremen · 28199',
+    signals: ['Airbus = sicheres Einkommen und guter Bonus', 'Lange WG-Phase deutet auf Kaufbereitschaft hin', '"Budget offen" = finanzielle Flexibilität'],
+    outreach: 'Nach 6 Jahren WG ist der Schritt ins Eigene oft der logische nächste – und als Airbus-Mitarbeiter sind die Voraussetzungen ideal. Ich rechne Ihnen in 30 Minuten durch was möglich ist.',
+    age: 'Vor 2 Tagen', hot: false
+  },
+  {
+    id: 17, source: 'brett', sourceLabel: 'Schwarzes Brett', score: 51,
+    title: 'Rentnerpaar verkauft Haus – Verkleinerung',
+    sub: '"Verkaufen unser Haus aus den 80ern, 160m², günstig wegen schneller Abwicklung. Zahlung sofort möglich."',
+    location: 'Delmenhorst · 27749',
+    signals: ['Günstiger Preis durch Verkäufermotivation', 'Käufer noch nicht in Sicht', 'Interessant für Investoren oder Familien'],
+    outreach: '',
+    age: 'Vor 7 Tagen', hot: false
+  },
+  {
+    id: 18, source: 'bau', sourceLabel: 'Baugenehmigung', score: 86,
+    title: 'Bauantrag Mehrfamilienhaus (6 Einheiten) – Stuhr',
+    sub: 'Privatinvestor, 6 Wohneinheiten, ca. 620m² BGF. Finanzierungsvolumen geschätzt: 1,8–2,2 Mio. €.',
+    location: 'Stuhr · 28816',
+    signals: ['Großvolumen-Finanzierung = höhere Provision', 'Privatinvestor = noch kein institutioneller Makler', 'Projekt frisch genehmigt – ideal einzusteigen'],
+    outreach: 'Bei einem Mehrfamilienhaus dieser Größe gibt es spezielle Finanzierungsstrukturen die deutlich günstiger sind als Standard-Hypotheken. Ich erstelle Ihnen ein unverbindliches Konzept.',
+    age: 'Vor 1 Tag', hot: true
+  },
+  {
+    id: 19, source: 'handel', sourceLabel: 'Handelsregister', score: 63,
+    title: 'Unternehmensumzug – Werbeagentur, Hamburg nach Bremen',
+    sub: 'GmbH verlegt Sitz von Hamburg nach Bremen. 8 Mitarbeiter. Inhaberin zieht persönlich um.',
+    location: 'Bremen · 28195',
+    signals: ['Inhaberin zieht um = persönlicher Immobilienbedarf', 'Unternehmerhaushalt = hohe Kaufkraft', 'Kompletter Neustart in Regionsmarket'],
+    outreach: 'Ein Unternehmensumzug ist oft auch der Moment für den persönlichen Neustart im Wohneigentum. Als Unternehmerin profitieren Sie von speziellen Selbständigen-Konditionen.',
+    age: 'Vor 6 Tagen', hot: false
+  },
+  {
+    id: 20, source: 'miete', sourceLabel: 'Mietpreis-Radar', score: 77,
+    title: 'PLZ-Alert: 28307 – Miete übersteigt Kaufrate um 23%',
+    sub: 'Ø Miete 3-Zi: 1.420€/Monat. Ø Kaufrate gleiche Größe: 1.154€/Monat. Delta: 266€/Monat = 3.192€/Jahr.',
+    location: 'Bremen Hemelingen · 28307',
+    signals: ['Mathematisch klares Argument für Kauf', 'Zielgruppe: alle Mieter in diesem PLZ', 'Ideal für Flyer, Google Ads, Direktansprache'],
+    outreach: 'Wussten Sie, dass Sie in 28307 monatlich 266€ sparen könnten, wenn Sie kaufen statt mieten? Das rechne ich Ihnen gerne individuell durch – kostenlos und unverbindlich.',
+    age: 'Heute berechnet', hot: false
+  },
+  {
+    id: 21, source: 'kleinanzeige', sourceLabel: 'Kleinanzeigen', score: 72,
+    title: 'Suche Grundstück mit Baugenehmigung – Selbstbauer',
+    sub: '"Suche Grundstück ca. 400–600m², Raum Bremen. Habe Architekten, brauche noch Finanzierung für Neubau."',
+    location: 'Bremen Umgebung',
+    signals: ['Architekt bereits beauftragt = sehr konkreter Kaufwunsch', 'Finanzierung noch offen = direkter Bedarf', 'Neubauprojekt = volle Begleitberatung möglich'],
+    outreach: 'Sie haben schon den Architekten – jetzt fehlt nur noch die Finanzierung. Neubaufinanzierungen sind meine Spezialität, und mit dem richtigen Setup spare ich Ihnen oft tausende Euro.',
+    age: 'Vor 1 Tag', hot: false
+  },
+  {
+    id: 22, source: 'wett', sourceLabel: 'Wettbewerber', score: 76,
+    title: 'Intesa Baufi Bremen – 4 Neg. Reviews in 2 Wochen',
+    sub: 'Gehäufte 2-Stern-Bewertungen: "Unflexibel", "Lange Wartezeiten", "Schlechte Kommunikation". Muster erkennbar.',
+    location: 'Bremen · Öffentlich',
+    signals: ['Systematische Schwäche – kein Einzelfall', 'Kunden aktiv suchend nach Alternative', 'Schwächephase: jetzt Marktanteile gewinnen'],
+    outreach: '',
+    age: 'Heute', hot: false
+  },
+  {
+    id: 23, source: 'bau', sourceLabel: 'Baugenehmigung', score: 66,
+    title: 'Sanierungsgenehmigung Altbau – Bremen Vahr',
+    sub: 'Kernsanierung EFH, Baujahr 1963. EU-Energiepflicht relevant. Eigentümer seit 20 Jahren.',
+    location: 'Bremen Vahr · 28329',
+    signals: ['EU-Sanierungspflicht erzeugt Finanzierungsdruck', 'KfW-Sanierungsförderung hochattraktiv', 'Eigentümer kennt Möglichkeiten oft nicht'],
+    outreach: 'Bei einer Kernsanierung Baujahr 1963 gibt es aktuell KfW-Förderungen bis zu 150.000€ zinsvergünstigt. Ich prüfe kostenlos, was für Sie machbar ist.',
+    age: 'Vor 4 Tagen', hot: false
+  },
+  {
+    id: 24, source: 'wg', sourceLabel: 'WG-Gesucht', score: 47,
+    title: 'Auszubildender, 22, sucht WG oder Zimmer – nicht kaufrelevant',
+    sub: '"Starte Ausbildung bei Sparkasse Bremen, suche günstiges Zimmer oder WG."',
+    location: 'Bremen · 28195',
+    signals: ['Junges Alter + Ausbildung = noch nicht kaufrelevant', 'In 5+ Jahren potenzieller Kaufinteressent', 'Sparkasse = zukünftig eigene Finanzierung'],
+    outreach: 'Zu früh für Direktansprache – aber in Netzwerk aufnehmen für die Zukunft.',
+    age: 'Vor 3 Stunden', hot: false
+  }
+];
+
+const MIET_DATA = [
+  { plz: '28307', area: 'Hemelingen', miete: 1420, rate: 1154, save: true },
+  { plz: '28279', area: 'Obervieland', miete: 1380, rate: 1210, save: true },
+  { plz: '27749', area: 'Delmenhorst', miete: 1180, rate: 890, save: true },
+  { plz: '28816', area: 'Stuhr', miete: 1520, rate: 1290, save: true },
+  { plz: '28832', area: 'Achim', miete: 1450, rate: 1180, save: true },
+  { plz: '28876', area: 'Oyten', miete: 1390, rate: 1050, save: true },
+  { plz: '27283', area: 'Verden', miete: 1220, rate: 980, save: true },
+  { plz: '28717', area: 'Vegesack', miete: 1350, rate: 1420, save: false },
+  { plz: '28359', area: 'Horn-Lehe', miete: 1680, rate: 1540, save: true },
+  { plz: '28757', area: 'Vegesack N.', miete: 1290, rate: 1350, save: false }
+];
+
+let currentTab = 'alle';
+let currentSort = 'score';
+let currentScoreFilter = 'alle';
+let selectedId = null;
+
+function getScoreClass(score) {
+  if (score >= 80) return 'high';
+  if (score >= 55) return 'mid';
+  return 'low';
+}
+
+function renderLeads() {
+  let leads = [...LEADS];
+
+  if (currentTab !== 'alle') {
+    leads = leads.filter(l => l.source === currentTab);
+  }
+
+  if (currentScoreFilter === 'hot') leads = leads.filter(l => l.score >= 80);
+  else if (currentScoreFilter === 'mid') leads = leads.filter(l => l.score >= 50 && l.score < 80);
+  else if (currentScoreFilter === 'low') leads = leads.filter(l => l.score < 50);
+
+  if (currentSort === 'score') leads.sort((a, b) => b.score - a.score);
+  else if (currentSort === 'date') leads.reverse();
+  else if (currentSort === 'source') leads.sort((a, b) => a.source.localeCompare(b.source));
+
+  const feed = document.getElementById('leadFeed');
+  const countTag = document.getElementById('countTag');
+  countTag.textContent = leads.length + ' Leads';
+
+  if (leads.length === 0) {
+    feed.innerHTML = '<div class="empty-state"><div>0</div>Keine Leads für diese Filterung</div>';
+    return;
+  }
+
+  feed.innerHTML = leads.map(l => {
+    const sc = getScoreClass(l.score);
+    return `
+    <div class="lead-card ${l.hot ? 'hot' : ''} ${selectedId === l.id ? 'selected' : ''}" onclick="selectLead(${l.id})">
+      <div class="lead-top">
+        <span class="source-pill source-${l.source}">${l.sourceLabel}</span>
+        <span class="score-badge ${sc}">${l.score}</span>
+      </div>
+      <div class="lead-title">${l.title}</div>
+      <div class="lead-sub">${l.sub.length > 100 ? l.sub.slice(0, 100) + '…' : l.sub}</div>
+      <div class="score-bar"><div class="score-fill ${sc}" style="width:${l.score}%"></div></div>
+      <div class="lead-meta">
+        <span class="lead-location">📍 ${l.location}</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${l.hot ? '<span class="hot-tag">HOT</span>' : ''}
+          <span class="lead-age">${l.age}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderLeads();
+}
+
+function sortLeads(val) {
+  currentSort = val;
+  renderLeads();
+}
+
+function filterScore(val) {
+  currentScoreFilter = val;
+  renderLeads();
+}
+
+function selectLead(id) {
+  selectedId = id;
+  const lead = LEADS.find(l => l.id === id);
+  if (!lead) return;
+
+  renderLeads();
+
+  const sc = getScoreClass(lead.score);
+  const container = document.getElementById('detailContainer');
+
+  const signalHTML = lead.signals.map(s =>
+    `<div class="signal-item"><span class="signal-icon">→</span><span>${s}</span></div>`
+  ).join('');
+
+  const outreachHTML = lead.outreach ?
+    `<div class="outreach-box">
+      <div class="outreach-label">Ansprache-Vorlage</div>
+      ${lead.outreach}
+    </div>` : '';
+
+  container.innerHTML = `
+    <div class="panel-section">
+      <div class="panel-title">Lead-Detail</div>
+      <span class="source-pill source-${lead.source} detail-source-pill">${lead.sourceLabel}</span>
+      <div class="detail-title" style="margin-top:8px;">${lead.title}</div>
+      <div class="detail-score-row">
+        <div class="detail-score-big ${sc === 'high' ? 'score-high-color' : sc === 'mid' ? 'score-mid-color' : ''}" style="color: ${sc === 'high' ? 'var(--score-high)' : sc === 'mid' ? 'var(--score-mid)' : 'var(--score-low)'}">${lead.score}</div>
+        <div>
+          <div style="font-size:12px;font-weight:500;">${sc === 'high' ? 'Hohe Priorität' : sc === 'mid' ? 'Mittlere Priorität' : 'Niedrige Priorität'}</div>
+          <div style="font-size:11px;color:var(--text3);">${lead.age} · ${lead.location}</div>
+        </div>
+      </div>
+      <div class="score-bar" style="margin-bottom:12px;"><div class="score-fill ${sc}" style="width:${lead.score}%"></div></div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px;">${lead.sub}</div>
+      <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Kaufsignale</div>
+      <div class="detail-signals">${signalHTML}</div>
+      ${outreachHTML}
+      <div class="action-row">
+        <div class="action-btn" onclick="copyOutreach(${lead.id})">Ansprache kopieren</div>
+        <div class="action-btn primary" onclick="openAIScore(${lead.id})">KI verfeinern ↗</div>
+      </div>
+    </div>`;
+}
+
+function copyOutreach(id) {
+  const lead = LEADS.find(l => l.id === id);
+  if (lead && lead.outreach) {
+    navigator.clipboard.writeText(lead.outreach).catch(() => {});
+    const btn = event.target;
+    btn.textContent = 'Kopiert!';
+    setTimeout(() => btn.textContent = 'Ansprache kopieren', 2000);
+  }
+}
+
+function openAIScore(id) {
+  const lead = LEADS.find(l => l.id === id);
+  if (!lead) return;
+  const aiInput = document.getElementById('aiInput');
+  aiInput.value = `Quelle: ${lead.sourceLabel}\n\nLead: ${lead.title}\n\nDetails: ${lead.sub}`;
+  aiInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.getElementById('aiResult').classList.remove('visible');
+}
+
+async function scoreWithAI() {
+  const input = document.getElementById('aiInput').value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById('aiBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  const result = document.getElementById('aiResult');
+  result.classList.remove('visible');
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `Du bist ein Lead-Scoring-Experte für Baufinanzierungsberater in Deutschland. 
+Analysiere den Lead und antworte NUR mit einem JSON-Objekt (kein Markdown, keine Backticks):
+{
+  "score": <Zahl 0-100>,
+  "prioritaet": "<Hoch|Mittel|Niedrig>",
+  "kaufwahrscheinlichkeit": "<Prozent als Text>",
+  "zeitfenster": "<z.B. '2-4 Wochen' oder 'sofort'>",
+  "hauptsignal": "<1 Satz, warum dieser Lead wertvoll ist>",
+  "risiko": "<1 Satz, was gegen eine Konvertierung spricht>",
+  "empfehlung": "<konkreter nächster Schritt für den Berater>"
+}`,
+        messages: [{ role: 'user', content: `Analysiere diesen Baufinanzierungs-Lead:\n\n${input}` }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    const sc = parsed.score >= 80 ? 'high' : parsed.score >= 55 ? 'mid' : 'low';
+    const colors = { high: 'var(--score-high)', mid: 'var(--score-mid)', low: 'var(--score-low)' };
+
+    result.innerHTML = `
+      <div class="ai-score-display">
+        <div class="ai-score-big" style="color:${colors[sc]}">${parsed.score}</div>
+        <div>
+          <div style="font-weight:500;font-size:13px;">${parsed.prioritaet} Priorität</div>
+          <div class="ai-score-label">Kaufwahrscheinlichkeit: ${parsed.kaufwahrscheinlichkeit} · Zeitfenster: ${parsed.zeitfenster}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px;"><strong style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Hauptsignal</strong><br>${parsed.hauptsignal}</div>
+      <div style="margin-bottom:8px;"><strong style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Risiko</strong><br>${parsed.risiko}</div>
+      <div style="background:var(--accent-light);padding:10px;border-radius:7px;border:1px solid #c3d9c7;margin-top:8px;">
+        <strong style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Empfehlung</strong>
+        <span style="color:var(--accent)">${parsed.empfehlung}</span>
+      </div>`;
+    result.classList.add('visible');
+  } catch (e) {
+    result.innerHTML = `<div style="color:var(--score-low)">Fehler bei der KI-Analyse. Bitte erneut versuchen.</div>`;
+    result.classList.add('visible');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Lead analysieren ↗';
+}
+
+function renderMietGrid() {
+  const grid = document.getElementById('mietGrid');
+  grid.innerHTML = MIET_DATA.map(m => {
+    const diff = Math.abs(m.miete - m.rate);
+    const pct = Math.round((diff / m.miete) * 100);
+    return `
+    <div class="miet-cell">
+      <div class="miet-plz">${m.plz}</div>
+      <div class="miet-area">${m.area}</div>
+      <div class="miet-diff ${m.save ? 'save' : 'lose'}">${m.save ? '–' : '+'}${diff}€/Monat (${pct}%)</div>
+      <div class="miet-bar ${m.save ? 'save' : 'lose'}" style="width:${Math.min(100, pct * 3)}%"></div>
+    </div>`;
+  }).join('');
+}
+
+function updateTime() {
+  const now = new Date();
+  document.getElementById('lastUpdate').textContent =
+    'Aktualisiert: ' + now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+
+renderLeads();
+renderMietGrid();
+updateTime();
+setInterval(updateTime, 60000);
+</script>
+</body>
+</html>
